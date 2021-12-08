@@ -1,0 +1,44 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Events</h1>
+
+    <table class="table">
+        <tr>
+            <th>
+                Date
+            </th>
+            <th>
+                Event
+            </th>
+            <th>
+                User
+            </th>
+            <th>
+                Remote
+            </th>
+        </tr>
+
+        @foreach(var entry in Model.Entries)
+        {
+            <tr>
+                <td>
+                    @entry.Date.ToString("yyyy-MM-dd hh:mm:ss")
+                </td>
+                <td>
+                    @entry.Action
+                </td>
+                <td>
+                    @entry.UserName
+                </td>
+                <td>
+                    @entry.RemoteName (@entry.RemoteAddress)
+                </td>
+            </tr>
+        }
+    </table>
+</div>
