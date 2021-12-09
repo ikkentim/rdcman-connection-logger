@@ -15,7 +15,7 @@ namespace RdcPlgTest
         {
             _client = new HttpClient
             {
-                Timeout = TimeSpan.FromSeconds(5),
+                Timeout = TimeSpan.FromSeconds(15),
                 BaseAddress = new Uri(server)
             };
         }

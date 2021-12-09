@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel.Composition;
-using System.IO;
 using System.Windows.Forms;
 using System.Xml;
 using RdcMan;
@@ -10,16 +9,18 @@ namespace RdcPlgTest
     [Export(typeof(IPlugin))]
     public class LoggerPlugin : IPlugin
     {
-		private static string SettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Application.CompanyName, Application.ProductName, "LoggerPlugin.config");
-		
+		private const string XmlElementName = "RdcManConnectionLogger";
+
+        public LoggerPlugin()
+        {
+			// Fix settings loading
+			RdcManFix.ApplyFix();
+        }
+
 		private string _configuredLogger = "http://localhost:5001/";
 	    public void PreLoad(IPluginContext context, XmlNode xmlNode)
 	    {
-			// Due to an rdcman bug I can't use the build-in settings :(
-			LoadSettings();
-
-			/*
-            if (xmlNode is XmlElement el)
+            if (xmlNode?.FirstChild is XmlElement el)
             {
                 var att = el.GetAttribute("server");
 
@@ -28,18 +29,10 @@ namespace RdcPlgTest
                     _configuredLogger = att;
                 }
             }
-			*/
-
 
 			LoggerClient.Initialize(_configuredLogger);
         }
 		
-		private void LoadSettings()
-        {
-			if(File.Exists(SettingsPath))
-			_configuredLogger = File.ReadAllText(SettingsPath).Trim();
-        }
-
 	    public async void PostLoad(IPluginContext context)
 	    {
 			Server.ConnectionStateChanged += ServerOnConnectionStateChanged;
@@ -106,21 +99,10 @@ namespace RdcPlgTest
 
 	    public XmlNode SaveSettings()
 	    {
-			/*
 		    var doc = new XmlDocument();
-		    var el = doc.CreateElement("RdcManConnectionLogger");
+		    var el = doc.CreateElement(XmlElementName);
 		    el.SetAttribute("server", _configuredLogger);
 			return el;
-			*/
-
-			try
-			{
-				Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath));
-				File.WriteAllText(SettingsPath, _configuredLogger);
-			}
-			catch {}
-
-			return null;
 	    }
 
 	    public void Shutdown()
