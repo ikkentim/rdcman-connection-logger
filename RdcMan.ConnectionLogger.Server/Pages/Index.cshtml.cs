@@ -1,22 +1,21 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace RdcMan.ConnectionLogger.Server.Pages
+namespace RdcMan.ConnectionLogger.Server.Pages;
+
+public class IndexModel : PageModel
 {
-    public class IndexModel : PageModel
+    private readonly ILogger<IndexModel> _logger;
+
+    public LoggerEntry[] Entries { get; } = LoggerStorage.GetEntries().ToArray();
+
+    public IndexModel(ILogger<IndexModel> logger)
     {
-        private readonly ILogger<IndexModel> _logger;
+        _logger = logger;
+    }
 
-        public LoggerEntry[] Entries { get; } = LoggerStorage.GetEntries().ToArray();
+    public void OnGet()
+    {
 
-        public IndexModel(ILogger<IndexModel> logger)
-        {
-            _logger = logger;
-        }
-
-        public void OnGet()
-        {
-
-        }
     }
 }

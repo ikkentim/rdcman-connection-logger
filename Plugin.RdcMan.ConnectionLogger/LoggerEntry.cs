@@ -3,15 +3,15 @@
 namespace RdcPlgTest
 {
     [DataContract]
-	public class LoggerEntry
+    public class LoggerEntry
     {
-		[DataMember]
+        [DataMember]
         public string UserName { get; set; }
-		[DataMember]
+        [DataMember]
         public string RemoteName { get; set; }
-		[DataMember]
+        [DataMember]
         public string Action { get; set; }
-		[DataMember]
+        [DataMember]
         public string RemoteAddress { get; set;}
     }
 }
