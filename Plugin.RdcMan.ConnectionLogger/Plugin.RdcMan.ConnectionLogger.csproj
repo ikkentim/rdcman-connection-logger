@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>RdcPlgTest</RootNamespace>
-    <AssemblyName>Plugin.RdcPlgTest</AssemblyName>
+    <AssemblyName>Plugin.ConnectionLogger</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -31,8 +31,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="RDCMan">
-      <HintPath>..\..\..\..\Desktop\RDCMan.exe</HintPath>
+    <Reference Include="RDCMan, Version=2.83.1411.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\ref\RDCMan.exe</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />

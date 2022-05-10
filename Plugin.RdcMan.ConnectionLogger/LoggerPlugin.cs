@@ -84,7 +84,7 @@ namespace RdcPlgTest
             }
         }
 
-        private string GetNodeName(TreeNode node)
+        private static string GetNodeName(TreeNode node)
         {
             switch (node)
             {
@@ -120,6 +120,13 @@ namespace RdcPlgTest
 
         public void Shutdown()
         {
+            var entry = new LoggerEntry
+            {
+                UserName = Environment.UserName,
+                Action = "Shutdown"
+            };
+            
+            LoggerClient.Send(entry);
         }
 
         public void OnUndockServer(IUndockedServerForm form)
