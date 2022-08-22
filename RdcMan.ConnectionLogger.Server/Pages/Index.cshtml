@@ -27,7 +27,7 @@
         {
             <tr>
                 <td>
-                    @entry.Date.ToString("yyyy-MM-dd HH:mm:ss")
+                    @entry.Date.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
                 </td>
                 <td>
                     @entry.Action

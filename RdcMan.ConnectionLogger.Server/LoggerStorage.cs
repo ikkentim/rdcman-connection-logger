@@ -6,7 +6,7 @@ public static class LoggerStorage
 
     public static void AddEntry(LoggerEntry entry)
     {
-        entry.Date = DateTime.Now;
+        entry.Date = DateTime.UtcNow;
 
         _entries.Add(entry);
     }

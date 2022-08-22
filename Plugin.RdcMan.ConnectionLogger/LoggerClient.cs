@@ -1,9 +1,11 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading.Tasks;
+using MemoryStream = System.IO.MemoryStream;
 
 namespace RdcPlgTest
 {
@@ -11,16 +13,49 @@ namespace RdcPlgTest
     {
         private static HttpClient _client = new HttpClient();
 
-        public static void Initialize(string server) =>
-            _client = new HttpClient
+        public static void Initialize(string server)
+        {
+            _client = new HttpClient { Timeout = TimeSpan.FromSeconds(15), BaseAddress = new Uri(server) };
+        }
+
+        public static bool IsConfigured => _client.BaseAddress != null;
+
+        public static async Task<LoggerEntry[]> GetLog()
+        {
+            
+            var result = await _client.GetAsync("/api/logger");
+
+            result.EnsureSuccessStatusCode();
+            
+            var serializer = new DataContractJsonSerializer(typeof(LoggerEntryLngDate[]));
+
+            // DEBUG
+            var mem = new MemoryStream();
+            await result.Content.CopyToAsync(mem);
+            mem.Position = 0;
+            var str = Encoding.UTF8.GetString(mem.ToArray());
+            Console.WriteLine(str);
+            mem.Position = 0;
+
+            // if (!(serializer.ReadObject(await result.Content.ReadAsStreamAsync()) is LoggerEntry[] entries))
+            if (!(serializer.ReadObject(mem) is LoggerEntryLngDate[] entries))
             {
-                Timeout = TimeSpan.FromSeconds(15),
-                BaseAddress = new Uri(server)
-            };
+                throw new InvalidDataException("Serialization failure");
+            }
+
+            return entries.Select(x => new LoggerEntry
+            {
+                Action = x.Action,
+                Date = x.Date == null ? null : (DateTime?)DateTimeOffset.FromUnixTimeSeconds(x.Date.Value).DateTime,
+                RemoteAddress = x.RemoteAddress,
+                RemoteName = x.RemoteName,
+                UserName = x.UserName
+            }).ToArray();
+        }
 
         public static async Task<bool> GetAvailable()
         {
-            if (_client.BaseAddress == null)
+            if (!IsConfigured)
             {
                 return false;
             }
@@ -39,7 +74,7 @@ namespace RdcPlgTest
 
         public static async void Send(LoggerEntry entry)
         {
-            if (_client.BaseAddress == null)
+            if (!IsConfigured)
             {
                 return;
             }
@@ -56,7 +91,7 @@ namespace RdcPlgTest
                             
                 try
                 {
-                    await _client.PostAsync("/api/logger", content);
+                    var resp = await _client.PostAsync("/api/logger", content);
                 }
                 catch
                 {

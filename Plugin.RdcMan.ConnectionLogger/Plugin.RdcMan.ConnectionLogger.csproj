@@ -49,6 +49,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="InvokeControlExtensions.cs" />
+    <Compile Include="LoggerEntryLngDate.cs" />
     <Compile Include="LoggerPlugin.cs" />
     <Compile Include="LoggerClient.cs" />
     <Compile Include="LoggerEntry.cs" />
@@ -58,8 +60,11 @@
     <Compile Include="LoggerServerEntry.Designer.cs">
       <DependentUpon>LoggerServerEntry.cs</DependentUpon>
     </Compile>
+    <Compile Include="Poller.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RdcManFix.cs" />
+    <Compile Include="ServerActivity.cs" />
+    <Compile Include="ServerState.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="LoggerServerEntry.resx">

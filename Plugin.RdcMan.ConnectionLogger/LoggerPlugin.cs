@@ -1,5 +1,8 @@
 ﻿using System;
 using System.ComponentModel.Composition;
+using System.Drawing;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 using RdcMan;
@@ -10,6 +13,8 @@ namespace RdcPlgTest
     public class LoggerPlugin : IPlugin
     {
         private const string XmlElementName = "RdcManConnectionLogger";
+        private IPluginContext _context;
+        private int _iconIdx = -1;
 
         public LoggerPlugin()
         {
@@ -35,55 +40,73 @@ namespace RdcPlgTest
         
         public async void PostLoad(IPluginContext context)
         {
+            _context = context;
+
+            SetupIcons();
+
             Server.ConnectionStateChanged += ServerOnConnectionStateChanged;
 
-            for(;;)
+            await CheckServerAvailableOrPrompt(context);
+
+            Poller.StartPoller();
+            Poller.ServerStateChanged += PollerOnServerStateChanged;
+        }
+
+        private void SetupIcons()
+        {
+            var treeView = _context.Tree as TreeView;
+
+            if (treeView == null)
+                return;
+
+            _iconIdx = treeView.ImageList.Images.Count;
+            treeView.ImageList.Images.Add(SystemIcons.Warning);
+        }
+
+        private async Task CheckServerAvailableOrPrompt(IPluginContext context)
+        {
+            var form = ((Form)context.MainForm);
+            for (;;)
             {
                 var avail = await LoggerClient.GetAvailable();
 
-                if(avail)
+                if (avail)
                 {
                     return;
                 }
 
-                var cancel = false;
-                var form = ((Form)context.MainForm);
 
-                var action = new Action(() =>{
-                    var prompt = new LoggerServerEntry
-                    {
-                        Value = _configuredLogger
-                    };
-
-                    var result = prompt.ShowDialog();
-
-                    if(result == DialogResult.Cancel)
-                    {
-                        cancel = true;
-                    }
-                    else
-                    {
-                        _configuredLogger = prompt.Value;
-                        LoggerClient.Initialize(_configuredLogger);
-                    }
-                });
-
-                if(form.InvokeRequired)
+                if (!PromptServerConnection(form))
                 {
-                    form.Invoke(action);
-                }
-                else
-                {
-                    action();
-                }
-                
-                if (cancel)
-                {
-                    return;
+                    break;
                 }
             }
         }
 
+        private bool PromptServerConnection(Form form)
+        {
+            var cancel = false;
+
+            form.InvokeIfRequired(() =>
+            {
+                var prompt = new LoggerServerEntry { Value = _configuredLogger };
+
+                var result = prompt.ShowDialog();
+
+                if (result == DialogResult.Cancel)
+                {
+                    cancel = true;
+                }
+                else
+                {
+                    _configuredLogger = prompt.Value;
+                    LoggerClient.Initialize(_configuredLogger);
+                }
+            });
+        
+            return !cancel;
+        }
+        
         private static string GetNodeName(TreeNode node)
         {
             switch (node)
@@ -94,6 +117,46 @@ namespace RdcPlgTest
                     return  $"{GetNodeName(group.Parent)}{group.Text}/";
                 default:
                     return string.Empty;
+            }
+        }
+        
+        private void PollerOnServerStateChanged(object sender, ServerState e)
+        {
+            if (_iconIdx < 0)
+            {
+                return;
+            }
+            
+            void Traverse(TreeNode node)
+            {
+                if (node is ServerBase server &&
+                    string.Equals(server.ServerName, e.RemoteAddress, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (e.ConnectedUser != null) // for testing on 1 machine
+                    // if (e.ConnectedUser != null && e.ConnectedUser != Environment.UserName)
+                    {
+                        server.TreeView.InvokeIfRequired(() =>
+                        {
+                            server.ImageIndex = _iconIdx;
+                            server.SelectedImageIndex = _iconIdx;
+                            server.StateImageIndex = _iconIdx;
+                        });
+                    }
+                }
+
+                foreach (var child in node.Nodes.OfType<TreeNode>())
+                {
+                    Traverse(child);
+                }
+            }
+
+            // _context.Tree.RootNode is garbage. Use the TreeView instead.
+            if (_context.Tree is TreeView treeView)
+            {
+                foreach (var node in treeView.Nodes.OfType<TreeNode>())
+                {
+                    Traverse(node);
+                }
             }
         }
 
@@ -139,6 +202,31 @@ namespace RdcPlgTest
 
         public void OnContextMenu(ContextMenuStrip contextMenuStrip, RdcTreeNode node)
         {
+            ToolStripMenuItem InactiveItem(string text)
+            {
+                return new ToolStripMenuItem(text) { Enabled = false };
+            }
+
+            if (node is ServerBase server)
+            {
+                var log = new ToolStripMenuItem();
+                log.Text = "Activity log...";
+
+                var any = false;
+                
+                var state = Poller.GetServerState(server.ServerName);
+                foreach (var activity in state.Activity.OrderByDescending(x => x.Date))
+                {
+                    log.DropDownItems.Add(InactiveItem($"{activity.UserName} {activity.Action} @ {activity.Date:yyyy-MM-dd HH:mm:ss}"));
+                    any = true;
+                }
+                if (!any)
+                {
+                    log.DropDownItems.Add(InactiveItem("(none)"));
+                }
+
+                contextMenuStrip.Items.Add(log);
+            }
         }
     }
 }
