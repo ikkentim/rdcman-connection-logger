@@ -15,6 +15,8 @@ namespace RdcPlgTest
         private const string XmlElementName = "RdcManConnectionLogger";
         private IPluginContext _context;
         private int _iconIdx = -1;
+        private readonly List<LoggerEntry> _shutdownQueue = new List<LoggerEntry>();
+
 
         public LoggerPlugin()
         {
@@ -159,17 +161,38 @@ namespace RdcPlgTest
             }
         }
 
+        private IEnumerable<LoggerEntry> EntriesInShutdownQueue(LoggerEntry search) =>
+            _shutdownQueue.Where(x => x.RemoteAddress == search.RemoteAddress && x.RemoteName == search.RemoteName);
+
         private void ServerOnConnectionStateChanged(ConnectionStateChangedEventArgs obj)
         {
+            var nodeName = GetNodeName(obj.Server);
+
             var entry = new LoggerEntry
             {
                 UserName = Environment.UserName,
                 Action = obj.State.ToString(),
-                RemoteName = GetNodeName(obj.Server),
+                RemoteName = nodeName,
                 RemoteAddress = obj.Server.ServerName
             };
             
             LoggerClient.Send(entry);
+
+            switch (obj.State)
+            {
+                case RdpClient.ConnectionState.Connected when !EntriesInShutdownQueue(entry).Any():
+                    _shutdownQueue.Add(new LoggerEntry
+                    {
+                        UserName = Environment.UserName,
+                        Action = RdpClient.ConnectionState.Disconnected.ToString(),
+                        RemoteName = nodeName,
+                        RemoteAddress = obj.Server.ServerName
+                    });
+                    break;
+                case RdpClient.ConnectionState.Disconnected:
+                    _shutdownQueue.RemoveAll(x => x.RemoteAddress == entry.RemoteAddress && x.RemoteName == entry.RemoteName);
+                    break;
+            }
         }
 
         public XmlNode SaveSettings()
@@ -189,6 +212,11 @@ namespace RdcPlgTest
             };
             
             LoggerClient.Send(entry);
+
+            foreach (var e in _shutdownQueue)
+            {
+                LoggerClient.Send(e);
+            }
         }
 
         public void OnUndockServer(IUndockedServerForm form)
@@ -225,6 +253,7 @@ namespace RdcPlgTest
 
             return $"{offset.Days} days ago";
         }
+
         public void OnContextMenu(ContextMenuStrip contextMenuStrip, RdcTreeNode node)
         {
             ToolStripMenuItem InactiveItem(string text)
