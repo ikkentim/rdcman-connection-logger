@@ -132,8 +132,7 @@ namespace RdcPlgTest
                 if (node is ServerBase server &&
                     string.Equals(server.ServerName, e.RemoteAddress, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (e.ConnectedUser != null) // for testing on 1 machine
-                    // if (e.ConnectedUser != null && e.ConnectedUser != Environment.UserName)
+                    if (e.ConnectedUser != null && e.ConnectedUser != Environment.UserName)
                     {
                         server.TreeView.InvokeIfRequired(() =>
                         {
@@ -200,6 +199,32 @@ namespace RdcPlgTest
         {
         }
 
+        private string GetOffsetText(DateTime date)
+        {
+            var offset = DateTime.Now - date;
+
+            if (offset < TimeSpan.Zero)
+            {
+                return "just now";
+            }
+
+            if (offset < TimeSpan.FromMinutes(1))
+            {
+                return $"{offset.Seconds} seconds ago";
+            }
+
+            if (offset < TimeSpan.FromHours(1))
+            {
+                return $"{offset.Minutes} minutes ago";
+            }
+
+            if (offset < TimeSpan.FromDays(1))
+            {
+                return $"{offset.Hours} hours, {offset.Minutes} minutes ago";
+            }
+
+            return $"{offset.Days} days ago";
+        }
         public void OnContextMenu(ContextMenuStrip contextMenuStrip, RdcTreeNode node)
         {
             ToolStripMenuItem InactiveItem(string text)
@@ -209,6 +234,8 @@ namespace RdcPlgTest
 
             if (node is ServerBase server)
             {
+                contextMenuStrip.Items.Add(new ToolStripSeparator());
+
                 var log = new ToolStripMenuItem();
                 log.Text = "Activity log...";
 
@@ -217,7 +244,7 @@ namespace RdcPlgTest
                 var state = Poller.GetServerState(server.ServerName);
                 foreach (var activity in state.Activity.OrderByDescending(x => x.Date))
                 {
-                    log.DropDownItems.Add(InactiveItem($"{activity.UserName} {activity.Action} @ {activity.Date:yyyy-MM-dd HH:mm:ss}"));
+                    log.DropDownItems.Add(InactiveItem($"{activity.UserName} {activity.Action} {GetOffsetText(activity.Date)}"));
                     any = true;
                 }
                 if (!any)
@@ -226,6 +253,11 @@ namespace RdcPlgTest
                 }
 
                 contextMenuStrip.Items.Add(log);
+
+                if (state.ConnectedUser != null && !state.LastUserIsMe)
+                {
+                    contextMenuStrip.Items.Add(InactiveItem($"Connected: {state.ConnectedUser}"));
+                }
             }
         }
     }

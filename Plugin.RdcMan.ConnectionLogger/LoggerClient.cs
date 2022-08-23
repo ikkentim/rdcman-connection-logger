@@ -28,17 +28,8 @@ namespace RdcPlgTest
             result.EnsureSuccessStatusCode();
             
             var serializer = new DataContractJsonSerializer(typeof(LoggerEntryLngDate[]));
-
-            // DEBUG
-            var mem = new MemoryStream();
-            await result.Content.CopyToAsync(mem);
-            mem.Position = 0;
-            var str = Encoding.UTF8.GetString(mem.ToArray());
-            Console.WriteLine(str);
-            mem.Position = 0;
-
-            // if (!(serializer.ReadObject(await result.Content.ReadAsStreamAsync()) is LoggerEntry[] entries))
-            if (!(serializer.ReadObject(mem) is LoggerEntryLngDate[] entries))
+            
+            if (!(serializer.ReadObject(await result.Content.ReadAsStreamAsync()) is LoggerEntry[] entries))
             {
                 throw new InvalidDataException("Serialization failure");
             }
@@ -46,7 +37,7 @@ namespace RdcPlgTest
             return entries.Select(x => new LoggerEntry
             {
                 Action = x.Action,
-                Date = x.Date == null ? null : (DateTime?)DateTimeOffset.FromUnixTimeSeconds(x.Date.Value).DateTime,
+                Date = x.Date == null ? null : (DateTime?)DateTimeOffset.FromUnixTimeSeconds(x.Date.Value).DateTime.ToLocalTime(),
                 RemoteAddress = x.RemoteAddress,
                 RemoteName = x.RemoteName,
                 UserName = x.UserName
