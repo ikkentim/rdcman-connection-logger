@@ -140,10 +140,25 @@ namespace RdcPlgTest
                         {
                             server.ImageIndex = _iconIdx;
                             server.SelectedImageIndex = _iconIdx;
-                            server.StateImageIndex = _iconIdx;
                         });
                     }
-                }
+                    else
+                    {
+                        server.TreeView.InvokeIfRequired(() =>
+                        {
+                            if (server.IsSelected)
+                            {
+                                server.ChangeImageIndex(server.IsConnected
+                                    ? ImageConstants.ConnectedSelectedServer
+                                    : ImageConstants.DisconnectedServer);
+                            }
+                            else
+                            {
+                                server.ChangeImageIndex(server.IsConnected ? ImageConstants.ConnectedServer : ImageConstants.DisconnectedServer);
+                            }
+                        });
+                    }
+                    }
 
                 foreach (var child in node.Nodes.OfType<TreeNode>())
                 {
