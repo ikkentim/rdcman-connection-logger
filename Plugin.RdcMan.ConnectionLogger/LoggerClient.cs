@@ -29,7 +29,7 @@ namespace RdcPlgTest
             
             var serializer = new DataContractJsonSerializer(typeof(LoggerEntryLngDate[]));
             
-            if (!(serializer.ReadObject(await result.Content.ReadAsStreamAsync()) is LoggerEntry[] entries))
+            if (!(serializer.ReadObject(await result.Content.ReadAsStreamAsync()) is LoggerEntryLngDate[] entries))
             {
                 throw new InvalidDataException("Serialization failure");
             }
